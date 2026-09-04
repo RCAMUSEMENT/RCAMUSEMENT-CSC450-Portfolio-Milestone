@@ -83,11 +83,11 @@ void executeBallastAscent(SubmersibleTelemetry& telemetry) {
 }
 
 /*
- * Function: main_submersible
+ * Function: main
  * Description: The main system processing entry point that prepares the environment,
  * launches worker threads, and blocks safely until all execution loops finish cleanly.
  */
-int main_submersible() {
+int main() {
     {
         std::lock_guard<std::mutex> ioLock(consoleIOMutex);
         std::cout << "=========================================================\n";
