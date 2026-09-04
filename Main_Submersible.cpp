@@ -1,10 +1,3 @@
-/**
- * @file main.cpp
- * @brief Submersible Ballast and Hydrostatic Pressure Concurrency Simulator
- * @details Establishes an ironclad, race-condition-free real-time telemetry pipeline.
- * @author Ryley Carlson
- * @course CSC450: Programming III
- */
 
 #include <iostream>
 #include <thread>
@@ -15,9 +8,10 @@
 // Independent mutex to guarantee the atomicity of standard console output operations
 std::mutex consoleIOMutex;
 
-/**
- * @struct SubmersibleTelemetry
- * @brief Encapsulates synchronized telemetry variables inside an aligned block.
+/*
+ * Structure: SubmersibleTelemetry
+ * Description: Encapsulates synchronized telemetry variables inside an aligned block
+ * to completely eliminate false sharing issues across processor cores.
  */
 struct alignas(64) SubmersibleTelemetry {
     std::mutex hullMutex;
@@ -26,9 +20,10 @@ struct alignas(64) SubmersibleTelemetry {
     bool divingPhaseComplete = false;
 };
 
-/**
- * @brief Simulates ballast tanks flooding, increasing hydrostatic pressure up to 20 PSI.
- * @param telemetry Reference to the encapsulated submersible telemetry state.
+/*
+ * Function: executeBallastDive
+ * Description: Simulates ballast tanks flooding, which steadily increases the hull's
+ * hydrostatic pressure up to a threshold of 20 PSI before triggering safe release flags.
  */
 void executeBallastDive(SubmersibleTelemetry& telemetry) {
     for (int psiIndex = 1; psiIndex <= 20; ++psiIndex) {
@@ -53,15 +48,16 @@ void executeBallastDive(SubmersibleTelemetry& telemetry) {
     telemetry.ascentDescentBarrier.notify_one();
 }
 
-/**
- * @brief Simulates blowing ballast tanks, venting pressure back down to 0 PSI.
- * @param telemetry Reference to the encapsulated submersible telemetry state.
+/*
+ * Function: executeBallastAscent
+ * Description: Simulates blowing the main ballast tanks, safely venting the depth pressure
+ * back down to 0 PSI after verifying the dive thread has completed operations.
  */
 void executeBallastAscent(SubmersibleTelemetry& telemetry) {
     {
         std::unique_lock<std::mutex> lock(telemetry.hullMutex);
-        telemetry.ascentDescentBarrier.wait(lock, [&telemetry] { 
-            return telemetry.divingPhaseComplete; 
+        telemetry.ascentDescentBarrier.wait(lock, [&telemetry] {
+            return telemetry.divingPhaseComplete;
         });
     }
 
@@ -79,7 +75,7 @@ void executeBallastAscent(SubmersibleTelemetry& telemetry) {
 
         {
             std::lock_guard<std::mutex> ioLock(consoleIOMutex);
-            std::cout << "[Telemetry Thread 2] Ascent Initiated - Blowing Ballast - Hull Hydrostatic Pressure: " 
+            std::cout << "[Telemetry Thread 2] Ascent Initiated - Blowing Ballast - Hull Hydrostatic Pressure: "
                     << localCurrentPressure << " PSI\n";
         }
 
@@ -87,7 +83,12 @@ void executeBallastAscent(SubmersibleTelemetry& telemetry) {
     }
 }
 
-int main() {
+/*
+ * Function: main_submersible
+ * Description: The main system processing entry point that prepares the environment,
+ * launches worker threads, and blocks safely until all execution loops finish cleanly.
+ */
+int main_submersible() {
     {
         std::lock_guard<std::mutex> ioLock(consoleIOMutex);
         std::cout << "=========================================================\n";
